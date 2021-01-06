@@ -1,6 +1,9 @@
 use async_std::task;
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
+extern crate firebase_rs;
+use firebase_rs::*;
 
 fn main() {}
 
@@ -11,22 +14,21 @@ enum Status {
     Ended,
 }
 
-async fn timer(seconds: u64 /*, callback: &dyn Fn()*/, status: std::sync::Arc<RwLock<Status>>) {
-    {
-        let mut write_status = status.write().unwrap();
-        *write_status = Status::Running;
-    }
-    let duration = Duration::from_secs(seconds);
-    task::block_on(async move { task::sleep(duration).await });
-    {
-        let mut write_status = status.write().unwrap();
-        *write_status = Status::Ended;
-    }
-    // callback();
+async fn timer(
+    seconds: u64,
+    status: Arc<RwLock<Status>>,
+    callback: fn(Arc<AtomicBool>),
+    ran: Arc<AtomicBool>,
+) {
+    *status.write().unwrap() = Status::Running;
+    task::block_on(async move {
+        task::sleep(Duration::from_secs(seconds)).await });
+    *status.write().unwrap() = Status::Ended;
+    callback(ran);
 }
 
-fn done() {
-    println!("I'm done");
+fn done(ran: Arc<AtomicBool>) {
+    ran.store(true, Ordering::SeqCst);
 }
 
 #[cfg(test)]
@@ -37,10 +39,23 @@ mod tests {
     fn calls_back_on_timer_completion() {
         let status = Arc::new(RwLock::new(Status::Inactive));
         let read_status = status.clone();
+        let ran = Arc::new(AtomicBool::new(false));
+        let read_ran = ran.clone();
 
-        task::block_on(task::spawn(timer(3, status)));
-        // println!("{:?}", read_status.read().unwrap());
-
+        task::block_on(task::spawn(timer(3, status, done, ran)));
         assert_eq!(*read_status.read().unwrap(), Status::Ended);
+        assert!(read_ran.load(Ordering::SeqCst));
+    }
+
+    #[test]
+    fn writes_to_firebasae() {
+        let firebase = Firebase::new("https://rust-timer-default-rtdb.firebaseio.com").unwrap();
+
+        let users = firebase.at("users").unwrap();
+        users.set("{\"username\":\"test\"}").unwrap();
+
+        let res = users.get().unwrap();
+        assert_eq!(res.body, "{\"username\":\"test\"}");
+
     }
 }

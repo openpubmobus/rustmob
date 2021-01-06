@@ -1,0 +1,17 @@
+
+base case
+
+Alpha joins the timer:
+    - a tag is created time_marker-expiration_time_in_UTC-userid
+    - There is no timer running => start new timer
+    - push time_marker.txt with:
+        - when timer is up (in UTC), X minutes from now
+        - git user ID
+    - it kicks off a thread on my machine for X minutes
+    - when complete it triggers the "mob next" function
+    - mob next:
+        - announces done
+
+Beta joins the timer
+    - 
+
