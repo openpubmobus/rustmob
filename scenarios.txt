@@ -15,3 +15,15 @@ Alpha joins the timer:
 Beta joins the timer
     - 
 
+Firebase scenario:
+
+1. Alpha runs a command to start the mob timer -> rustmob start 5
+    a. A call is made to firebase to save the current timestamp and end timestamp against a unique identifier
+    b. Program starts a local timer
+2. Alpha gets the unique id as a return value
+3. Alpha shares the unique id with the group
+4. Beta fires up a command with the unique id 
+    a. The program fetches the timestamp from firebase
+    b. The program starts a local timer
+5. Once timers are finished, program beeps
+

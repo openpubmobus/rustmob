@@ -48,8 +48,9 @@ mod tests {
     }
 
     #[test]
-    fn writes_to_firebasae() {
-        let firebase = Firebase::new("https://rust-timer-default-rtdb.firebaseio.com").unwrap();
+    fn writes_to_firebase() {
+        let result = Firebase::new("https://rust-timer-default-rtdb.firebaseio.com");
+        let firebase = result.unwrap();
 
         let users = firebase.at("users").unwrap();
         users.set("{\"username\":\"test\"}").unwrap();
