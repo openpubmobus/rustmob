@@ -1,4 +1,6 @@
 
+Earlier approach(suspended):
+
 base case
 
 Alpha joins the timer:
@@ -15,7 +17,9 @@ Alpha joins the timer:
 Beta joins the timer
     - 
 
-Firebase scenario:
+Firebase approach(currently in works):
+
+Base case:
 
 1. Alpha runs a command to start the mob timer -> rustmob start 5
     a. A call is made to firebase to save the current timestamp and end timestamp against a unique identifier
