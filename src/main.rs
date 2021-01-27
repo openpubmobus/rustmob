@@ -2,9 +2,15 @@ use async_std::task;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-use chrono::{DateTime, Utc, Local};
+use chrono::Utc;
 extern crate firebase_rs;
 use firebase_rs::*;
+
+static FIREBASE_URL: &str = "https://rust-timer-default-rtdb.firebaseio.com";
+
+fn firebase() -> Firebase {
+    Firebase::new(FIREBASE_URL).unwrap()
+}
 
 fn main() {}
 
@@ -32,18 +38,17 @@ fn done(ran: Arc<AtomicBool>) {
     ran.store(true, Ordering::SeqCst);
 }
 
-fn store_future_time(givenTime: Option<i64>, how_long: i64) {
-    let start_time = match givenTime {
+#[allow(dead_code)]
+fn store_future_time(given_time: Option<i64>, how_long: i64) {
+    let start_time = match given_time {
         Some(time) => time,
         None => Utc::now().timestamp(),
     };
-
-    println!("startTime: {:?}", start_time);
     
     let end_time = start_time + how_long * 60 * 1000;
-    //let utc_time = DateTime::<Utc>::from_utc(local_time.naive_utc(), Utc);
-
-    println!("end time: {}", end_time);
+    let end_time_text = format!("{{\"endTime\":{}}}", end_time);
+    let timer = firebase().at("timer").unwrap();
+    timer.set(&end_time_text).unwrap();
 
 }
 
@@ -64,27 +69,15 @@ mod tests {
     }
 
     #[test]
-    fn writes_to_firebase() {
-        let result = Firebase::new("https://rust-timer-default-rtdb.firebaseio.com");
-        let firebase = result.unwrap();
-
-        let users = firebase.at("users").unwrap();
-        users.set("{\"username\":\"test\"}").unwrap();
-
-        let res = users.get().unwrap();
-        assert_eq!(res.body, "{\"username\":\"test\"}");
-
-    }
-
-    #[test]
     fn save_future_time_from_duration() {
-        let duration: u32 = 5;
+        let duration: i64 = 5;
+        let start_time = 0;
 
-        store_future_time(None, 5);
+        store_future_time(Some(start_time), duration);
 
-        // assert_eq!(... a string holding the UTC 5 minutes out..., if weask for what was sent to Firebase)
-//        println!("{:?}", utc_time);
+        let timer = firebase().at("timer").unwrap();
+        let res = timer.get().unwrap();
+        assert_eq!(res.body, "{\"endTime\":300000}")
     }
-
     
 }
