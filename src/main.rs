@@ -21,15 +21,16 @@ enum Status {
     Ended,
 }
 
-async fn timer(
-    seconds: u64,
+async fn notify_at(
+    wakeup_time_epoch: i64,
     status: Arc<RwLock<Status>>,
     callback: fn(Arc<AtomicBool>),
     ran: Arc<AtomicBool>,
 ) {
+    let sleep_seconds = wakeup_time_epoch - Utc::now().timestamp();
     *status.write().unwrap() = Status::Running;
     task::block_on(async move {
-        task::sleep(Duration::from_secs(seconds)).await });
+    task::sleep(Duration::from_secs(sleep_seconds as u64)).await });
     *status.write().unwrap() = Status::Ended;
     callback(ran);
 }
@@ -61,8 +62,13 @@ mod tests {
         let read_status = status.clone();
         let ran = Arc::new(AtomicBool::new(false));
         let read_ran = ran.clone();
+        let start_time = Utc::now().timestamp();
+        let wakeup_time = start_time + 2;
 
-        task::block_on(task::spawn(timer(3, status, done, ran)));
+        task::block_on(task::spawn(notify_at(wakeup_time, status, done, ran)));
+
+        let now = Utc::now().timestamp();
+        assert!((now - wakeup_time).abs() < 1);
         assert_eq!(*read_status.read().unwrap(), Status::Ended);
         assert!(read_ran.load(Ordering::SeqCst));
     }
