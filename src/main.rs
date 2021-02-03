@@ -38,14 +38,13 @@ fn done(ran: Arc<AtomicBool>) {
     ran.store(true, Ordering::SeqCst);
 }
 
-#[allow(dead_code)]
-fn store_future_time(given_time: Option<i64>, how_long: i64) {
-    let start_time = match given_time {
+fn store_future_time(given_time: Option<i64>, wait_minutes: i64) {
+    let start_time_epoch = match given_time {
         Some(time) => time,
         None => Utc::now().timestamp(),
     };
-    
-    let end_time = start_time + how_long * 60 * 1000;
+
+    let end_time = start_time_epoch + wait_minutes * 60 * 1000;
     let end_time_text = format!("{{\"endTime\":{}}}", end_time);
     let timer = firebase().at("timer").unwrap();
     timer.set(&end_time_text).unwrap();
@@ -70,14 +69,13 @@ mod tests {
 
     #[test]
     fn save_future_time_from_duration() {
-        let duration: i64 = 5;
-        let start_time = 0;
+        let wait_minutes: i64 = 5;
+        let start_time_epoch = 0;
 
-        store_future_time(Some(start_time), duration);
+        store_future_time(Some(start_time_epoch), wait_minutes);
 
         let timer = firebase().at("timer").unwrap();
         let res = timer.get().unwrap();
         assert_eq!(res.body, "{\"endTime\":300000}")
     }
-    
 }
