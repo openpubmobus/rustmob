@@ -5,6 +5,9 @@ use std::time::Duration;
 use chrono::Utc;
 extern crate firebase_rs;
 use firebase_rs::*;
+extern crate machine_uid;
+extern crate clap;
+use clap::{Arg, App, SubCommand};
 
 static FIREBASE_URL: &str = "https://rust-timer-default-rtdb.firebaseio.com";
 
@@ -13,8 +16,25 @@ fn firebase() -> Firebase {
 }
 
 fn main() {
-  let end_time = store_future_time(None, 1);
+    let matches = App::new("My Super Program")
+         .subcommand(SubCommand::with_name("new"))
+         .subcommand(SubCommand::with_name("join").arg(Arg::with_name("id").required(true)))
+         .get_matches();
+    if let Some(matches) = matches.subcommand_matches("new") {
+        println!("NEW");
+    }
+    if let Some(matches) = matches.subcommand_matches("join") {
+        println!("join");
+        let machine_id = matches.value_of("id").unwrap();
+        println!("id: {}", machine_id);
+    }
+
+    /*
+  let id: String = machine_uid::get().unwrap();
+  let end_time = store_future_time(None, 1, id.as_str());
+  println!("Timer start, id: {}", id);
   task::block_on(task::spawn(notify_at(end_time, notification, Arc::new(AtomicBool::new(false)))));
+  */
 }
 
 fn notification(ran: Arc<AtomicBool>) {
@@ -36,7 +56,7 @@ fn done(ran: Arc<AtomicBool>) {
     ran.store(true, Ordering::SeqCst);
 }
 
-fn store_future_time(given_time: Option<i64>, wait_minutes: i64) -> i64 {
+fn store_future_time(given_time: Option<i64>, wait_minutes: i64, uid: &str) -> i64 {
     let start_time_epoch = match given_time {
         Some(time) => time,
         None => Utc::now().timestamp(),
@@ -44,7 +64,7 @@ fn store_future_time(given_time: Option<i64>, wait_minutes: i64) -> i64 {
 
     let end_time = start_time_epoch + wait_minutes * 60;
     let end_time_text = format!("{{\"endTime\":{}}}", end_time);
-    let timer = firebase().at("timer").unwrap();
+    let timer = firebase().at(uid).unwrap();
     timer.set(&end_time_text).unwrap();
     return end_time;
 
@@ -79,10 +99,11 @@ mod tests {
     fn save_future_time_from_duration() {
         let wait_minutes: i64 = 5;
         let start_time_epoch = 0;
+        let uid = "TEST123456ABC";
 
-        store_future_time(Some(start_time_epoch), wait_minutes);
+        store_future_time(Some(start_time_epoch), wait_minutes, uid);
 
-        let timer = firebase().at("timer").unwrap();
+        let timer = firebase().at(uid).unwrap();
         let res = timer.get().unwrap();
         assert_eq!(res.body, "{\"endTime\":300}")
     }
@@ -91,8 +112,9 @@ mod tests {
     fn store_future_time_returns_end_time() {
         let wait_minutes: i64 = 5;
         let start_time_epoch = 0;
+        let uid = "TEST123456ABC";
 
-        let return_value = store_future_time(Some(start_time_epoch), wait_minutes);
+        let return_value = store_future_time(Some(start_time_epoch), wait_minutes, uid);
 
         assert_eq!(return_value, 300);
     }

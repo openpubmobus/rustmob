@@ -3,19 +3,23 @@ Earlier approach(suspended):
 
 base case
 
-Alpha joins the timer:
-    - a tag is created time_marker-expiration_time_in_UTC-userid
-    - There is no timer running => start new timer
-    - push time_marker.txt with:
-        - when timer is up (in UTC), X minutes from now
-        - git user ID
-    - it kicks off a thread on my machine for X minutes
-    - when complete it triggers the "mob next" function
-    - mob next:
-        - announces done
 
-Beta joins the timer
-    - 
+Alpha runs program with a single argument
+    - calculate end time
+    - program generates unique id
+    - program creates new table in firebase named after unique id
+    - stores end time in table
+    - program returns unique id
+    - kicks off timer
+    - notification when timer is done
+
+
+Beta runs program with unique id
+    - programs retrieve end time from firebase
+    - calculate remaining time based on current time
+    - kicks off timer
+    - notification when timer is done
+
 
 Firebase approach(currently in works):
 
