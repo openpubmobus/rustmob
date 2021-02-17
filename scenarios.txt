@@ -4,6 +4,9 @@ Earlier approach(suspended):
 base case
 
 
+
+==> Add an "id" verb to print your machine id
+
 Alpha runs program with a single argument
     - calculate end time
     - program generates unique id
