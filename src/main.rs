@@ -8,6 +8,7 @@ use firebase_rs::*;
 extern crate machine_uid;
 extern crate clap;
 use clap::{Arg, App, SubCommand};
+use serde_json::{Result, Value, Deserializer};
 
 static FIREBASE_URL: &str = "https://rust-timer-default-rtdb.firebaseio.com";
 
@@ -21,20 +22,28 @@ fn main() {
          .subcommand(SubCommand::with_name("join").arg(Arg::with_name("id").required(true)))
          .get_matches();
     if let Some(matches) = matches.subcommand_matches("new") {
-        println!("NEW");
+        let id: String = machine_uid::get().unwrap();
+        let end_time = store_future_time(None, 1, id.as_str());
+        println!("Timer start, id: {}", id);
+        task::block_on(task::spawn(notify_at(end_time, notification, Arc::new(AtomicBool::new(false)))));
     }
     if let Some(matches) = matches.subcommand_matches("join") {
         println!("join");
-        let machine_id = matches.value_of("id").unwrap();
-        println!("id: {}", machine_id);
-    }
+        let id = matches.value_of("id").unwrap();
+        let current_time = Utc::now().timestamp();
+        let end_time = retrieve_future_time(id);
+        match (current_time < end_time) {
+            true => 
+                    task::block_on(task::spawn(notify_at(end_time, notification, Arc::new(AtomicBool::new(false))))),
+            false => println!("YOLO"),
+        }
 
-    /*
-  let id: String = machine_uid::get().unwrap();
-  let end_time = store_future_time(None, 1, id.as_str());
-  println!("Timer start, id: {}", id);
-  task::block_on(task::spawn(notify_at(end_time, notification, Arc::new(AtomicBool::new(false)))));
-  */
+
+        // 1: timer not expired yet. Start on machine X, now on machine Y
+        // 2: (timer expired)
+        // 3: (invalid id)
+        println!("id: {}", id);
+    }
 }
 
 fn notification(ran: Arc<AtomicBool>) {
@@ -67,13 +76,21 @@ fn store_future_time(given_time: Option<i64>, wait_minutes: i64, uid: &str) -> i
     let timer = firebase().at(uid).unwrap();
     timer.set(&end_time_text).unwrap();
     return end_time;
+}
 
+fn retrieve_future_time(uid: &str) -> i64 {
+    let timer = firebase().at(uid).unwrap();
+    let json_payload = timer.get().unwrap();
+    let node: Value = serde_json::from_str(&json_payload.body).unwrap();
+
+    return node["endTime"].as_i64().unwrap();
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
+    // Fix random failures
     #[test]
     fn notify_at_correct_time() {
         let start_time = Utc::now().timestamp();
@@ -94,18 +111,19 @@ mod tests {
         assert!(read_ran.load(Ordering::SeqCst));
     }
 
-
     #[test]
-    fn save_future_time_from_duration() {
+    fn store_future_time_from_duration() {
         let wait_minutes: i64 = 5;
         let start_time_epoch = 0;
         let uid = "TEST123456ABC";
 
         store_future_time(Some(start_time_epoch), wait_minutes, uid);
 
-        let timer = firebase().at(uid).unwrap();
-        let res = timer.get().unwrap();
-        assert_eq!(res.body, "{\"endTime\":300}")
+        let end_time = retrieve_future_time(uid);
+        // let timer = firebase().at(uid).unwrap();
+        // let res = timer.get().unwrap();
+        // "{\"endTime\":300}")
+        assert_eq!(end_time, 300)
     }
 
     #[test]
