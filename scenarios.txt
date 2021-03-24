@@ -38,3 +38,10 @@ Base case:
     b. The program starts a local timer
 5. Once timers are finished, program beeps
 
+
+TODO:
+  - hash the machine id
+  - Try to start twice from the same machine?
+  - Should we delete a timer when it's done
+  - take care of trying to join a non-existant id
+  - human test for multiple timers
