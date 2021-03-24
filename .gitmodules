@@ -1,3 +1,0 @@
-[submodule "timers"]
-	path = timers
-	url = git@github.com:openpubmobus/timers.git
