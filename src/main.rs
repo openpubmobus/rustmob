@@ -36,7 +36,7 @@ fn main() {
         }
     }
 
-    if let Some(_) = arg_matches.subcommand_matches("new") {
+    if arg_matches.subcommand_matches("new").is_some() {
         option_new(db);
     } else if let Some(matches) = arg_matches.subcommand_matches("join") {
         let id = matches.value_of("id").unwrap();
