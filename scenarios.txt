@@ -40,7 +40,7 @@ Base case:
 
 
 TODO:
-  - hash the machine id
+  X hash the machine id
   - Try to start twice from the same machine?
   - Should we delete a timer when it's done
   - take care of trying to join a non-existant id

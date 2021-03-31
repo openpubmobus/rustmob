@@ -13,7 +13,7 @@ extern crate machine_uid;
 
 use anyhow::Result;
 use clap::{App, Arg, SubCommand};
-use serde_json::Value;
+use serde_json::{json, Value};
 
 #[derive(Debug)]
 struct CustomError(String);
@@ -62,23 +62,34 @@ fn option_new(db: Firebase) {
     )));
 }
 
-fn option_join(db: Firebase, id: &str) {
-    println!("join");
-    let current_time = Utc::now().timestamp();
-    let end_time = retrieve_future_time(&db, id).unwrap();
-    match current_time < end_time {
-        true => task::block_on(task::spawn(notify_at(
-            end_time,
-            notification,
-            Arc::new(AtomicBool::new(false)),
-        ))),
-        false => println!("YOLO"),
-    }
+/*
+fn already_set_option(db: Firebase, connection_id: &str) -> Option() {
+    let timer = firebase
+        .at(uid);
+        .map_err(|_| CustomError(String::from("Could not set timer")))?;
+    let myresult: Option<
 
+}
+*/
+
+fn option_join(db: Firebase, id: &str) {
+    let current_time = Utc::now().timestamp();
+    if let Some(end_time) = retrieve_future_time(&db, id).unwrap() {
+        println!("join");
+        match current_time < end_time {
+            true => task::block_on(task::spawn(notify_at(
+                end_time,
+                notification,
+                Arc::new(AtomicBool::new(false)),
+            ))),
+            false => println!("YOLO"),
+        }
+    } else {
+        println!("Could not retrieve id: {}", id);
+    }
     // 1: timer not expired yet. Start on machine X, now on machine Y
     // 2: (timer expired)
     // 3: (invalid id)
-    println!("id: {}", id);
 }
 
 fn notification(_ran: Arc<AtomicBool>) {
@@ -119,7 +130,7 @@ fn store_future_time(
     return Ok(end_time);
 }
 
-fn retrieve_future_time(firebase: &Firebase, uid: &str) -> Result<i64, CustomError> {
+fn retrieve_future_time(firebase: &Firebase, uid: &str) -> Result<Option<i64>, CustomError> {
     let timer = firebase
         .at(uid)
         .map_err(|_| CustomError(String::from("Could not set timer")))?;
@@ -128,12 +139,22 @@ fn retrieve_future_time(firebase: &Firebase, uid: &str) -> Result<i64, CustomErr
         .map_err(|_| CustomError(String::from("Could not get timer payload")))?;
     let node: Value = serde_json::from_str(&json_payload.body)
         .map_err(|_| CustomError(String::from("unable parse json")))?;
-
+    if node == json!(null) {
+        return Ok(None);
+    }
     // TODO: What if endtime is garbage and can't convert to i64?
     // let end_time_i64 = node["endTime"].as_i64().unwrap();
+    /*
     node["endTime"]
         .as_i64()
         .ok_or(CustomError(String::from("Could not convert to i64")))
+        */
+    if let Some(node) = node["endTime"].as_i64() {
+        return Ok(Some(node));
+    } else {
+        return Err(CustomError(String::from("Could not convert to i64")));
+        //return Err("Some error happened here")
+    }
 }
 
 #[cfg(test)]
@@ -186,7 +207,7 @@ mod tests {
         let _ = store_future_time(&firebase, Some(start_time_epoch), wait_minutes, uid);
 
         let end_time = retrieve_future_time(&firebase, uid).unwrap();
-        assert_eq!(end_time, 300)
+        assert_eq!(end_time, Some(300))
     }
 
     #[test]
@@ -200,11 +221,5 @@ mod tests {
             store_future_time(&firebase, Some(start_time_epoch), wait_minutes, uid);
 
         assert_eq!(end_time_result.unwrap(), 300);
-    }
-
-    #[test]
-    fn generates_unique_id_from_machine_id() {
-
-
     }
 }
