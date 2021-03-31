@@ -44,10 +44,16 @@ fn main() {
     }
 }
 
+fn get_connection_id() -> String {
+    let uid: String = machine_uid::get().unwrap();
+    let digest = md5::compute(uid);
+    format!("{:x}", digest)
+}
+
 fn option_new(db: Firebase) {
-    let id: String = machine_uid::get().unwrap();
-    let end_time = store_future_time(&db, None, 1, id.as_str());
-    println!("Timer start, id: {}", id);
+    let connection_id = get_connection_id();
+    let end_time = store_future_time(&db, None, 1, connection_id.as_str());
+    println!("Timer start, id: {}", connection_id);
     // TODO: remove unwrap?
     task::block_on(task::spawn(notify_at(
         end_time.unwrap(),
@@ -194,5 +200,11 @@ mod tests {
             store_future_time(&firebase, Some(start_time_epoch), wait_minutes, uid);
 
         assert_eq!(end_time_result.unwrap(), 300);
+    }
+
+    #[test]
+    fn generates_unique_id_from_machine_id() {
+
+
     }
 }

@@ -45,3 +45,5 @@ TODO:
   - Should we delete a timer when it's done
   - take care of trying to join a non-existant id
   - human test for multiple timers
+  - pull integration test out of main.rs
+  - better overall file (module) organization?
