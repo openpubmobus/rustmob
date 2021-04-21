@@ -5,9 +5,6 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
 
-//extern crate firebase_rs;
-use firebase_rs;
-
 use firebase_rs::*;
 
 //extern crate clap;
@@ -18,19 +15,8 @@ use machine_uid;
 use clap::{App, Arg, SubCommand};
 use serde_json::{json, Value};
 
-#[derive(Debug)]
-struct CustomError(String);
-
-/*
-enum MyErrors: Error {
-    case Error,
-    case UrlParseError,
-    case RequestError,
-}
-*/
-
 static FIREBASE_URL: &str = "https://rust-timer-default-rtdb.firebaseio.com";
-// static BAD_FIREBASE_URL: &str = "rust-timer-default-rtdb.firebaseio.com";
+//static BAD_FIREBASE_URL: &str = "rust-timer-default-rtdb.firebaseio.com";
 
 fn main() {
     let arg_matches = App::new("My Super Program")
@@ -41,8 +27,10 @@ fn main() {
     let db: Firebase;
     match firebase() {
         Ok(f) => db = f,
-        Err(_) => {
-            println!("ERROR TODO FIX ME");
+        Err(e) => {
+            eprintln!("Error while connecting to Firebase:");
+            eprintln!("DEBUG:  {:?}", e);
+            eprintln!("NORMAL: {}", e);
             std::process::exit(1)
         }
     }
@@ -76,8 +64,7 @@ fn option_new(db: Firebase) {
 /*
 fn already_set_option(db: Firebase, connection_id: &str) -> Option() {
     let timer = firebase
-        .at(uid);
-        .map_err(|_| CustomError(String::from("Could not set timer")))?;
+        .at(uid)?;
     let myresult: Option<
 
 }
@@ -113,8 +100,8 @@ async fn notify_at(wakeup_time_epoch: i64, callback: fn(Arc<AtomicBool>), ran: A
     callback(ran);
 }
 
-fn firebase() -> Result<Firebase, UrlParseError> {
-    Firebase::new(FIREBASE_URL) //.map_err(|x| CustomError(format!("unable to create Firebase")))?;
+fn firebase() -> Result<Firebase> {
+    Firebase::new(FIREBASE_URL).map_err(|e| e.into())
 }
 
 fn store_future_time(
@@ -137,15 +124,10 @@ fn store_future_time(
     return Ok(end_time);
 }
 
-fn retrieve_future_time(firebase: &Firebase, uid: &str) -> Result<Option<i64>, CustomError> {
-    let timer = firebase
-        .at(uid)
-        .map_err(|_| CustomError(String::from("Could not set timer")))?;
-    let json_payload = timer
-        .get()
-        .map_err(|_| CustomError(String::from("Could not get timer payload")))?;
-    let node: Value = serde_json::from_str(&json_payload.body)
-        .map_err(|_| CustomError(String::from("unable parse json")))?;
+fn retrieve_future_time(firebase: &Firebase, uid: &str) -> Result<Option<i64>> {
+    let timer = firebase.at(uid)?;
+    let json_payload = timer.get()?;
+    let node: Value = serde_json::from_str(&json_payload.body)?;
     if node == json!(null) {
         return Ok(None);
     }
@@ -153,14 +135,13 @@ fn retrieve_future_time(firebase: &Firebase, uid: &str) -> Result<Option<i64>, C
     // let end_time_i64 = node["endTime"].as_i64().unwrap();
     /*
     node["endTime"]
-        .as_i64()
+        .as_i64()?
         .ok_or(CustomError(String::from("Could not convert to i64")))
         */
     if let Some(node) = node["endTime"].as_i64() {
-        return Ok(Some(node));
+        Ok(Some(node))
     } else {
-        return Err(CustomError(String::from("Could not convert to i64")));
-        //return Err("Some error happened here")
+        Ok(None)
     }
 }
 
