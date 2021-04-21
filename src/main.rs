@@ -1,22 +1,33 @@
+use anyhow::Result;
 use async_std::task;
 use chrono::Utc;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
 
-extern crate firebase_rs;
+//extern crate firebase_rs;
+use firebase_rs;
 
 use firebase_rs::*;
 
-extern crate clap;
-extern crate machine_uid;
+//extern crate clap;
+use clap;
+//extern crate machine_uid;
+use machine_uid;
 
-use anyhow::Result;
 use clap::{App, Arg, SubCommand};
 use serde_json::{json, Value};
 
 #[derive(Debug)]
 struct CustomError(String);
+
+/*
+enum MyErrors: Error {
+    case Error,
+    case UrlParseError,
+    case RequestError,
+}
+*/
 
 static FIREBASE_URL: &str = "https://rust-timer-default-rtdb.firebaseio.com";
 // static BAD_FIREBASE_URL: &str = "rust-timer-default-rtdb.firebaseio.com";
@@ -111,7 +122,7 @@ fn store_future_time(
     given_time: Option<i64>,
     wait_minutes: i64,
     uid: &str,
-) -> Result<i64, CustomError> {
+) -> Result<i64> {
     let start_time_epoch = match given_time {
         Some(time) => time,
         None => Utc::now().timestamp(),
@@ -119,13 +130,9 @@ fn store_future_time(
 
     let end_time = start_time_epoch + wait_minutes * 60;
     let end_time_text = format!("{{\"endTime\":{}}}", end_time);
-    let timer = firebase
-        .at(uid)
-        .map_err(|_| CustomError(String::from("Hey toes")))?;
+    let timer = firebase.at(uid)?;
 
-    timer
-        .set(&end_time_text)
-        .map_err(|_| CustomError(String::from("Unable to set timer")))?;
+    timer.set(&end_time_text)?;
 
     return Ok(end_time);
 }
