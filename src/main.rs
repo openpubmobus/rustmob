@@ -1,12 +1,12 @@
 use anyhow::Result;
 use async_std::task;
 use chrono::Utc;
+use clap;
+use firebase_rs::*;
+use machine_uid;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
-use firebase_rs::*;
-use clap;
-use machine_uid;
 
 use clap::{App, Arg, SubCommand};
 use serde_json::{json, Value};
@@ -14,8 +14,8 @@ use serde_json::{json, Value};
 static FIREBASE_URL: &str = "https://rust-timer-default-rtdb.firebaseio.com";
 
 fn main() {
-    let arg_matches = App::new("My Super Program")
-        .subcommand(SubCommand::with_name("new"))
+    let arg_matches = App::new("RustMob")
+        .subcommand(SubCommand::with_name("new").arg(Arg::with_name("duration").required(true)))
         .subcommand(SubCommand::with_name("join").arg(Arg::with_name("id").required(true)))
         .get_matches();
 
@@ -29,8 +29,12 @@ fn main() {
         }
     }
 
-    if arg_matches.subcommand_matches("new").is_some() {
-        option_new(db);
+    if let Some(matches) = arg_matches.subcommand_matches("new") {
+        let duration = clap::value_t!(matches.value_of("duration"), u64).unwrap_or_else(|e| {
+            eprintln!("{}", e);
+            std::process::exit(1)
+        });
+        option_new(db, duration);
     } else if let Some(matches) = arg_matches.subcommand_matches("join") {
         let id = matches.value_of("id").unwrap();
         option_join(db, &id);
@@ -47,9 +51,17 @@ fn get_connection_id() -> String {
     format!("{:x}", digest)
 }
 
-fn option_new(db: Firebase) {
+fn option_new(db: Firebase, duration: u64) {
     let connection_id = get_connection_id();
-    let end_time = store_future_time(&db, None, 1, connection_id.as_str());
+    let existing_timer = retrieve_future_time(&db, connection_id.as_str());
+    println!("XXXX {:?}", existing_timer);
+    // We need to check if the time retrieve is in the past <<<<<<== TODO
+    if let Ok(Some(_)) = existing_timer {
+        eprintln!("Timer already started on this machine."); std::process::exit(1);
+    }
+
+
+    let end_time = store_future_time(&db, None, duration, connection_id.as_str());
     println!("Timer start, id: {}", connection_id);
     task::block_on(task::spawn(notify_at(
         end_time.unwrap(),
@@ -91,7 +103,7 @@ async fn notify_at(wakeup_time_epoch: i64, callback: fn(Arc<AtomicBool>), ran: A
 fn store_future_time(
     firebase: &Firebase,
     given_time: Option<i64>,
-    wait_minutes: i64,
+    wait_minutes: u64,
     uid: &str,
 ) -> Result<i64> {
     let start_time_epoch = match given_time {
@@ -99,7 +111,7 @@ fn store_future_time(
         None => Utc::now().timestamp(),
     };
 
-    let end_time = start_time_epoch + wait_minutes * 60;
+    let end_time = start_time_epoch + (wait_minutes as i64) * 60;
     let timer = firebase.at(uid)?;
     timer.set(&format!("{{\"endTime\":{}}}", end_time))?;
 

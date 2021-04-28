@@ -40,7 +40,8 @@ Base case:
 
 
 TODO:
-  - hash the machine id
+  x hash the machine id
+  + take a time argument
   - Try to start twice from the same machine?
   - config cli to give a warning if run without a command
   - Should we delete a timer when it's done
