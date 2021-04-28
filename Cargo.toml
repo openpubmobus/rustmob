@@ -8,7 +8,8 @@ edition = "2018"
 
 [dependencies]
 async-std="^1.7.0"
-firebase-rs="^1.0.3"
+#firebase-rs="^1.0.3"
+firebase-rs= { git = "https://github.com/dorfsmay/firebase-rs", branch = "implement-std-error" }
 chrono="^0.4.19"
 machine-uid="^0.2.0"
 clap="^2.33.3"

@@ -40,8 +40,9 @@ Base case:
 
 
 TODO:
-  X hash the machine id
+  - hash the machine id
   - Try to start twice from the same machine?
+  - config cli to give a warning if run without a command
   - Should we delete a timer when it's done
   - take care of trying to join a non-existant id
   - human test for multiple timers
