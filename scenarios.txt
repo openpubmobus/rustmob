@@ -42,10 +42,11 @@ Base case:
 TODO:
   x hash the machine id
   + take a time argument
-  - Try to start twice from the same machine?
+  + Try to start twice from the same machine?
   - config cli to give a warning if run without a command
   - Should we delete a timer when it's done
-  - take care of trying to join a non-existant id
+  + take care of trying to join a non-existant id
   - human test for multiple timers
   - pull integration test out of main.rs
   - better overall file (module) organization?
+  - provide a command to print the hashed id

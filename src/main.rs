@@ -1,9 +1,7 @@
 use anyhow::Result;
 use async_std::task;
 use chrono::Utc;
-use clap;
 use firebase_rs::*;
-use machine_uid;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
@@ -54,12 +52,12 @@ fn get_connection_id() -> String {
 fn option_new(db: Firebase, duration: u64) {
     let connection_id = get_connection_id();
     let existing_timer = retrieve_future_time(&db, connection_id.as_str());
-    println!("XXXX {:?}", existing_timer);
-    // We need to check if the time retrieve is in the past <<<<<<== TODO
-    if let Ok(Some(_)) = existing_timer {
-        eprintln!("Timer already started on this machine."); std::process::exit(1);
+    if let Ok(Some(current_end_time)) = existing_timer {
+        if !is_in_past(current_end_time) {
+            eprintln!("Timer already started on this machine.");
+            std::process::exit(1);
+        }
     }
-
 
     let end_time = store_future_time(&db, None, duration, connection_id.as_str());
     println!("Timer start, id: {}", connection_id);
@@ -68,6 +66,10 @@ fn option_new(db: Firebase, duration: u64) {
         notification,
         Arc::new(AtomicBool::new(false)),
     )));
+}
+
+fn is_in_past(existing_timer: i64) -> bool {
+    return Utc::now().timestamp() > existing_timer;
 }
 
 fn option_join(db: Firebase, id: &str) {
@@ -85,9 +87,6 @@ fn option_join(db: Firebase, id: &str) {
     } else {
         println!("Could not retrieve id: {}", id);
     }
-    // 1: timer not expired yet. Start on machine X, now on machine Y
-    // 2: (timer expired)
-    // 3: (invalid id)
 }
 
 fn notification(_ran: Arc<AtomicBool>) {
