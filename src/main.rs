@@ -160,14 +160,16 @@ mod tests {
     use super::*;
     use std::sync::atomic::Ordering;
 
+    const SOME_UID: &str = "TEST123456ABC";
+    const START_TIME_EPOCH: i64 = 0;
+    const FIVE_MINUTES: u64 = 5;
+
     fn done(ran: Arc<AtomicBool>) {
         ran.store(true, Ordering::SeqCst);
     }
 
-    // // Fix random failures
     #[test]
     fn notify_at_correct_time() {
-        println!("notify at _correct_time");
         let start_time = Utc::now().timestamp();
         let wakeup_time = start_time + 2;
 
@@ -182,7 +184,6 @@ mod tests {
 
     #[test]
     fn calls_back_on_timer_completion() {
-        println!("calls_back_on_timer_blah");
         let ran = Arc::new(AtomicBool::new(false));
         let read_ran = ran.clone();
 
@@ -197,26 +198,20 @@ mod tests {
 
     #[test]
     fn store_future_time_from_duration() {
-        let wait_minutes: i64 = 5;
-        let start_time_epoch = 0;
-        let uid = "TEST123456ABC";
         let firebase = firebase().unwrap();
 
-        let _ = store_future_time(&firebase, Some(start_time_epoch), wait_minutes, uid);
+        let _ = store_future_time(&firebase, Some(START_TIME_EPOCH), FIVE_MINUTES, SOME_UID);
 
-        let end_time = retrieve_future_time(&firebase, uid).unwrap();
+        let end_time = retrieve_future_time(&firebase, SOME_UID).unwrap();
         assert_eq!(end_time, Some(300))
     }
 
     #[test]
     fn store_future_time_returns_end_time() {
-        let wait_minutes: i64 = 5;
-        let start_time_epoch = 0;
-        let uid = "TEST123456ABC";
         let firebase = firebase().unwrap();
 
         let end_time_result =
-            store_future_time(&firebase, Some(start_time_epoch), wait_minutes, uid);
+            store_future_time(&firebase, Some(START_TIME_EPOCH), FIVE_MINUTES, SOME_UID);
 
         assert_eq!(end_time_result.unwrap(), 300);
     }
