@@ -6,15 +6,33 @@ use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
 
-use clap::{App, Arg, SubCommand};
+use clap::{App, AppSettings, Arg, SubCommand};
 use serde_json::{json, Value};
 
 static FIREBASE_URL: &str = "https://rust-timer-default-rtdb.firebaseio.com";
 
 fn main() {
     let arg_matches = App::new("RustMob")
-        .subcommand(SubCommand::with_name("new").arg(Arg::with_name("duration").required(true)))
-        .subcommand(SubCommand::with_name("join").arg(Arg::with_name("id").required(true)))
+        .setting(AppSettings::ArgRequiredElseHelp)
+        .subcommand(
+            SubCommand::with_name("new")
+                .about("Create a new timer.")
+                .arg(
+                    Arg::with_name("duration")
+                        .required(true)
+                        .help("Duration in minutes"),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("join")
+                .about("Join an existing timer")
+                .arg(
+                    Arg::with_name("id")
+                        .required(true)
+                        .help("Connection id provided when timer created."),
+                ),
+        )
+        .subcommand(SubCommand::with_name("printid").about("Print local connection id."))
         .get_matches();
 
     let db: Firebase;
@@ -36,6 +54,8 @@ fn main() {
     } else if let Some(matches) = arg_matches.subcommand_matches("join") {
         let id = matches.value_of("id").unwrap();
         option_join(db, &id);
+    } else if let Some(_) = arg_matches.subcommand_matches("printid") {
+        option_print_id();
     }
 }
 
@@ -47,6 +67,10 @@ fn get_connection_id() -> String {
     let uid: String = machine_uid::get().unwrap();
     let digest = md5::compute(uid);
     format!("{:x}", digest)
+}
+
+fn option_print_id() {
+    println!("Your connection id is {}", get_connection_id());
 }
 
 fn option_new(db: Firebase, duration: u64) {
