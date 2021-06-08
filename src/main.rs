@@ -12,28 +12,8 @@ use serde_json::{json, Value};
 static FIREBASE_URL: &str = "https://rust-timer-default-rtdb.firebaseio.com";
 
 fn main() {
-    let arg_matches = App::new("RustMob")
-        .setting(AppSettings::ArgRequiredElseHelp)
-        .subcommand(
-            SubCommand::with_name("new")
-                .about("Create a new timer.")
-                .arg(
-                    Arg::with_name("duration")
-                        .required(true)
-                        .help("Duration in minutes"),
-                ),
-        )
-        .subcommand(
-            SubCommand::with_name("join")
-                .about("Join an existing timer")
-                .arg(
-                    Arg::with_name("id")
-                        .required(true)
-                        .help("Connection id provided when timer created."),
-                ),
-        )
-        .subcommand(SubCommand::with_name("printid").about("Print local connection id."))
-        .get_matches();
+    let app = extract_command_line_args(String::from("RustMob"));
+    let arg_matches = app.get_matches();
 
     let db: Firebase;
     match firebase() {
@@ -54,9 +34,33 @@ fn main() {
     } else if let Some(matches) = arg_matches.subcommand_matches("join") {
         let id = matches.value_of("id").unwrap();
         option_join(db, &id);
-    } else if let Some(_) = arg_matches.subcommand_matches("printid") {
+    } else if arg_matches.subcommand_matches("printid").is_some() {
         option_print_id();
     }
+}
+
+fn extract_command_line_args<'a>(app_name: String) -> App<'a, 'a> {
+    App::new(app_name)
+        .setting(AppSettings::ArgRequiredElseHelp)
+        .subcommand(
+            SubCommand::with_name("new")
+                .about("Create a new timer.")
+                .arg(
+                    Arg::with_name("duration")
+                        .required(true)
+                        .help("Duration in minutes"),
+                ),
+        )
+        .subcommand(
+            SubCommand::with_name("join")
+                .about("Join an existing timer")
+                .arg(
+                    Arg::with_name("id")
+                        .required(true)
+                        .help("Connection id provided when timer created."),
+                ),
+        )
+        .subcommand(SubCommand::with_name("printid").about("Print local connection id."))
 }
 
 fn firebase() -> Result<Firebase> {
@@ -93,7 +97,7 @@ fn option_new(db: Firebase, duration: u64) {
 }
 
 fn is_in_past(existing_timer: i64) -> bool {
-    return Utc::now().timestamp() > existing_timer;
+    Utc::now().timestamp() > existing_timer
 }
 
 fn option_join(db: Firebase, id: &str) {
@@ -138,7 +142,7 @@ fn store_future_time(
     let timer = firebase.at(uid)?;
     timer.set(&format!("{{\"endTime\":{}}}", end_time))?;
 
-    return Ok(end_time);
+    Ok(end_time)
 }
 
 fn retrieve_future_time(firebase: &Firebase, uid: &str) -> Result<Option<i64>> {
