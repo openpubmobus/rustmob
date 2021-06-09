@@ -30,7 +30,9 @@ fn main() {
             eprintln!("{}", e);
             std::process::exit(1)
         });
-        option_new(db, duration);
+        if option_new(&db, duration).is_err() {
+            std::process::exit(1);
+        }
     } else if let Some(matches) = arg_matches.subcommand_matches("join") {
         let id = matches.value_of("id").unwrap();
         option_join(db, &id);
@@ -77,13 +79,13 @@ fn option_print_id() {
     println!("Your connection id is {}", get_connection_id());
 }
 
-fn option_new(db: Firebase, duration: u64) {
+fn option_new(db: &Firebase, duration: u64) -> Result<(), String> {
     let connection_id = get_connection_id();
     let existing_timer = retrieve_future_time(&db, connection_id.as_str());
     if let Ok(Some(current_end_time)) = existing_timer {
         if !is_in_past(current_end_time) {
             eprintln!("Timer already started on this machine.");
-            std::process::exit(1);
+            return Err("".to_string());
         }
     }
 
@@ -94,6 +96,7 @@ fn option_new(db: Firebase, duration: u64) {
         notification,
         Arc::new(AtomicBool::new(false)),
     )));
+    Ok(())
 }
 
 fn is_in_past(existing_timer: i64) -> bool {
@@ -164,7 +167,6 @@ mod tests {
     use super::*;
     use std::sync::atomic::Ordering;
 
-    const SOME_UID: &str = "TEST123456ABC";
     const START_TIME_EPOCH: i64 = 0;
     const FIVE_MINUTES: u64 = 5;
 
@@ -202,6 +204,7 @@ mod tests {
 
     #[test]
     fn store_future_time_from_duration() {
+        const SOME_UID: &str =  "TEST-store_future_time_from_duration";
         let firebase = firebase().unwrap();
 
         let _ = store_future_time(&firebase, Some(START_TIME_EPOCH), FIVE_MINUTES, SOME_UID);
@@ -212,11 +215,19 @@ mod tests {
 
     #[test]
     fn store_future_time_returns_end_time() {
+        const SOME_UID: &str =  "TEST-store_future_time_returns_end_time";
         let firebase = firebase().unwrap();
 
         let end_time_result =
             store_future_time(&firebase, Some(START_TIME_EPOCH), FIVE_MINUTES, SOME_UID);
 
         assert_eq!(end_time_result.unwrap(), 300);
+    }
+    #[test]
+    fn option_new_exits_when_timer_already_started() {
+        const SOME_UID: &str =  "TEST-option_new_exits_when_timer_already_started";
+        let firebase = firebase().unwrap();
+        store_future_time(&firebase, None, FIVE_MINUTES, SOME_UID).unwrap();
+        assert!(option_new(&firebase, FIVE_MINUTES).is_err());
     }
 }
