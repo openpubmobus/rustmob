@@ -108,13 +108,19 @@ fn is_in_past(existing_timer: i64) -> bool {
 fn option_join(db: Firebase, id: &str) {
     let current_time = Utc::now().timestamp();
     if let Some(end_time) = retrieve_future_time(&db, id).unwrap() {
-        println!("join");
         match current_time < end_time {
-            true => task::block_on(task::spawn(notify_at(
-                end_time,
-                notification,
-                Arc::new(AtomicBool::new(false)),
-            ))),
+            true => {
+                println!(
+                    "Joining time id \"{}\", {} seconds remaining",
+                    id,
+                    end_time - current_time
+                );
+                task::block_on(task::spawn(notify_at(
+                    end_time,
+                    notification,
+                    Arc::new(AtomicBool::new(false)),
+                )))
+            }
             false => println!("timer already expired"),
         }
     } else {
