@@ -1,44 +1,3 @@
-
-Earlier approach(suspended):
-
-base case
-
-
-
-==> Add an "id" verb to print your machine id
-
-Alpha runs program with a single argument
-    - calculate end time
-    - program generates unique id
-    - program creates new table in firebase named after unique id
-    - stores end time in table
-    - program returns unique id
-    - kicks off timer
-    - notification when timer is done
-
-
-Beta runs program with unique id
-    - programs retrieve end time from firebase
-    - calculate remaining time based on current time
-    - kicks off timer
-    - notification when timer is done
-
-
-Firebase approach(currently in works):
-
-Base case:
-
-1. Alpha runs a command to start the mob timer -> rustmob start 5
-    a. A call is made to firebase to save the current timestamp and end timestamp against a unique identifier
-    b. Program starts a local timer
-2. Alpha gets the unique id as a return value
-3. Alpha shares the unique id with the group
-4. Beta fires up a command with the unique id 
-    a. The program fetches the timestamp from firebase
-    b. The program starts a local timer
-5. Once timers are finished, program beeps
-
-
 TODO:
   x hash the machine id
   + take a time argument
@@ -50,3 +9,8 @@ TODO:
   - pull integration test out of main.rs
   - better overall file (module) organization?
   + provide a command to print the hashed id
+  - cancel timer prematurely so you can start it again (restart?)
+
+  currently:
+
+  - the timer can only be run once on the host machine
