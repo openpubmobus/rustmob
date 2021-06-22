@@ -2,6 +2,7 @@ use anyhow::Result;
 use async_std::task;
 use chrono::Utc;
 use firebase_rs::*;
+use notify_rust::Notification;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 use std::time::Duration;
@@ -10,6 +11,7 @@ use clap::{App, AppSettings, Arg, SubCommand};
 use serde_json::{json, Value};
 
 static FIREBASE_URL: &str = "https://rust-timer-default-rtdb.firebaseio.com";
+static PROGNAME: &str = "Rustmob";
 
 fn main() {
     let app = extract_command_line_args(String::from("RustMob"));
@@ -90,7 +92,7 @@ fn option_new(db: &Firebase, duration: u64) -> Result<(), String> {
     }
 
     let end_time = store_future_time(&db, None, duration, connection_id.as_str());
-    println!("Timer start, id: {}", connection_id);
+    println!("Timer started, id: {}", connection_id);
     task::block_on(task::spawn(notify_at(
         end_time.unwrap(),
         notification,
@@ -121,7 +123,11 @@ fn option_join(db: Firebase, id: &str) {
 }
 
 fn notification(_ran: Arc<AtomicBool>) {
-    println!("--done--");
+    Notification::new()
+        .summary(&format!("{} timer expired", PROGNAME))
+        .timeout(0)
+        .show()
+        .unwrap();
 }
 
 async fn notify_at(wakeup_time_epoch: i64, callback: fn(Arc<AtomicBool>), ran: Arc<AtomicBool>) {
@@ -199,12 +205,13 @@ mod tests {
             ran,
         )));
 
+        println!("====> {:?}", read_ran.load(Ordering::SeqCst));
         assert!(read_ran.load(Ordering::SeqCst));
     }
 
     #[test]
     fn store_future_time_from_duration() {
-        const SOME_UID: &str =  "TEST-store_future_time_from_duration";
+        const SOME_UID: &str = "TEST-store_future_time_from_duration";
         let firebase = firebase().unwrap();
 
         let _ = store_future_time(&firebase, Some(START_TIME_EPOCH), FIVE_MINUTES, SOME_UID);
@@ -215,7 +222,7 @@ mod tests {
 
     #[test]
     fn store_future_time_returns_end_time() {
-        const SOME_UID: &str =  "TEST-store_future_time_returns_end_time";
+        const SOME_UID: &str = "TEST-store_future_time_returns_end_time";
         let firebase = firebase().unwrap();
 
         let end_time_result =
@@ -225,7 +232,7 @@ mod tests {
     }
     #[test]
     fn option_new_exits_when_timer_already_started() {
-        const SOME_UID: &str =  "TEST-option_new_exits_when_timer_already_started";
+        const SOME_UID: &str = "TEST-option_new_exits_when_timer_already_started";
         let firebase = firebase().unwrap();
         store_future_time(&firebase, None, FIVE_MINUTES, SOME_UID).unwrap();
         assert!(option_new(&firebase, FIVE_MINUTES).is_err());
