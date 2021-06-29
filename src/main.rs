@@ -37,9 +37,20 @@ fn main() {
         }
     } else if let Some(matches) = arg_matches.subcommand_matches("join") {
         let id = matches.value_of("id").unwrap();
-        option_join(db, &id);
+        option_join(&db, &id);
     } else if arg_matches.subcommand_matches("printid").is_some() {
         option_print_id();
+    } else if arg_matches.subcommand_matches("cancel").is_some() {
+        option_cancel(&db);
+    }
+}
+
+fn option_cancel(db: &Firebase) {
+    let uid = get_connection_id();
+    if let Ok(timer) = db.at(&uid) {
+        if timer.delete("").is_ok() {
+            println!("Deleted timer with your connection id.");
+        }
     }
 }
 
@@ -64,6 +75,7 @@ fn extract_command_line_args<'a>(app_name: String) -> App<'a, 'a> {
                         .help("Connection id provided when timer created."),
                 ),
         )
+        .subcommand(SubCommand::with_name("cancel").about("Cancel existing local timer."))
         .subcommand(SubCommand::with_name("printid").about("Print local connection id."))
 }
 
@@ -105,7 +117,7 @@ fn is_in_past(existing_timer: i64) -> bool {
     Utc::now().timestamp() > existing_timer
 }
 
-fn option_join(db: Firebase, id: &str) {
+fn option_join(db: &Firebase, id: &str) {
     let current_time = Utc::now().timestamp();
     if let Some(end_time) = retrieve_future_time(&db, id).unwrap() {
         match current_time < end_time {
