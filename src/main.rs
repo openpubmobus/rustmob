@@ -45,15 +45,6 @@ fn main() {
     }
 }
 
-fn option_cancel(db: &Firebase) {
-    let uid = get_connection_id();
-    if let Ok(timer) = db.at(&uid) {
-        if timer.delete("").is_ok() {
-            println!("Deleted timer with your connection id.");
-        }
-    }
-}
-
 fn extract_command_line_args<'a>(app_name: String) -> App<'a, 'a> {
     App::new(app_name)
         .setting(AppSettings::ArgRequiredElseHelp)
@@ -133,11 +124,28 @@ fn option_join(db: &Firebase, id: &str) {
                     Arc::new(AtomicBool::new(false)),
                 )))
             }
-            false => println!("timer already expired"),
+            false => {
+                println!("Timer already expired");
+                cancel(db)
+            },
         }
     } else {
         println!("Could not retrieve id: {}", id);
     }
+}
+
+fn option_cancel(db: &Firebase) {
+    let uid = get_connection_id();
+    if let Ok(timer) = db.at(&uid) {
+        if timer.delete("").is_ok() {
+            println!("Deleted timer with your connection id.");
+        }
+    }
+}
+
+fn cancel(db: &Firebase) {
+    let uid = get_connection_id();
+    db.at(&uid).unwrap().delete("").unwrap();
 }
 
 fn notification(_ran: Arc<AtomicBool>) {

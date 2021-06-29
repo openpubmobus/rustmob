@@ -1,16 +1,31 @@
 TODO:
   x hash the machine id
-  + take a time argument
-  + Try to start twice from the same machine?
+  x take a time argument
+  x disallow starting timer from the same machine
   + config cli to give a warning if run without a command
-  - Should we delete a timer when it's done
   + take care of trying to join a non-existant id
-  - human test for multiple timers
   - pull integration test out of main.rs
   - better overall file (module) organization?
-  + provide a command to print the hashed id
-  - cancel timer prematurely so you can start it again (restart?)
+  x provide a command to print the hashed id
+  x cancel timer prematurely so you can start it again (restart?)
+  x delete UID key when attempting to join after expiration
+  - delete UID key after expiration
 
-  currently:
+  - human test for multiple timers
 
-  - the timer can only be run once on the host machine
+
+RACE conditions?
+
+- store timer as a insert-first list
+- delete all timers after the 1st when joining
+- delete all timers after the 1st when creating
+
+new jefftimer 5 at time A => [ A+5 ]
+join jefftimer => [ A+5 ]
+jefftimer expires => [ A+5 ]
+new jefftimer 5 at time B > A =>
+    step 1 insert new time [ B+5, A+5 ]
+    step 2 delete all but first [ B+5 ]
+
+- quarterly job to remove IDs not touched in past quarter?
+
