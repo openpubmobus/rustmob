@@ -29,3 +29,31 @@ new jefftimer 5 at time B > A =>
 
 - quarterly job to remove IDs not touched in past quarter?
 
+
+DRIVER:
+
+
+mob start
+rustmob N
+pause & ask for input -- stop, press enter when ready
+mob next
+
+
+===
+
+rustmob new 7 -> Firebase key = REPO URL. Monitor Firebase
+              -> Monitor filesystem to see if mob branch has been created
+                    on mob start: Writes user ID to database with start & stop time
+
+
+rustmob
+
+
+
+OTHER PEOPLE JOIN:
+
+ rustmob join UID
+    on timer expire: notify
+
+
+
